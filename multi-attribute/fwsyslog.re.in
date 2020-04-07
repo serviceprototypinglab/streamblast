@@ -1,0 +1,14 @@
+(?P<time>\d[^ ]+) +\w+ +\w+ +>\w+ (?:(?:
+(?:inzone:(?P<inzone>.*?))|
+(?:outzone:(?P<outzone>.*?))|
+(?:rule:(?P<rule>.*?))|
+(?:rule_uid:(?P<rule_uid>.*?))|
+(?:rule_name:(?P<rule_name>.*?))|
+(?:dst:(?P<dst>.*?))|
+(?:src:(?P<src>.*?))|
+(?:proto:(?P<proto>.*?))|
+(?:product:(?P<product>.*?))|
+(?:service:(?P<service>.*?))|
+(?:s_port:(?P<s_port>.*?))|
+(?:product_family:(?P<product_family>.*?))|
+);)+

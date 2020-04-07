@@ -1,0 +1,34 @@
+Streamblast: Fast entity extraction and transformation
+for IoT, Fog and Cloud applications
+------------------------------------------------------
+
+Streamblast works like Logstash or Fluentd, just with higher
+performance. Instead of using an ELK/EFK stack, with Streamblast one can
+set up ESK or PSG stacks that are blazingly fast. Use Streamblast for
+log aggregation and analytics, IoT message aggregation and processing,
+and message stream filtering in continuum computing scenarios.
+
+ESK:
+ Streamblast (attribute extraction + JSON formatting)
+ -> Elasticsearch (NoSQL database) -> Kibana (visualisation)
+
+PSG:
+ Streamblast (attribute extraction + JSON formatting)
+ -> PostgreSQL (SQL database) -> Grafana (visualisation) 
+
+Streamblast is implemented in C in two flavours depending on performance
+and flexibility requirements: A single-attribute and a multi-attribute
+variant.
+
+Future plans are a merge of both variants into one executable with
+appropriate getopt parameter parsing, and the support of more stacks
+such as FaaS for scalable message processing in the cloud and Tile38 for
+scalable geolocation processing from sensor deployments.
+
+Installation:
+- make sure pcre2-dev is installed
+- type `make'
+
+Test:
+- Minimal test data in the syntactic form of a firewall log is included
+  in the `data' folder

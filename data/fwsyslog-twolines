@@ -1,0 +1,2 @@
+10:00:00 drop   fw99       >eth0 inzone:External;outzone:External;rule:333;rule_uid:{DEADBEEF-BB42-42BB-1234-ABCABCABC998};rule_name:alert;src:127.0.0.1;dst:streamblast.local;proto:udp;product:IoT-Aggregator;service:http;s_port:42000;product_family:Network
+10:00:01 drop   fw99       >eth0 inzone:External;outzone:Internal;rule:334;rule_uid:{DEADBEEF-BB42-42BB-1234-ABCABCABC999};rule_name:alert;dst:127.0.0.1;src:streamblast.local;proto:tcp;product:IoT-Aggregator;service:http;s_port:11111;product_family:Network
