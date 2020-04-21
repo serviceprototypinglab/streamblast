@@ -1,4 +1,4 @@
-(?P<time>\d[^ ]+) +\w+ +\w+ +>\w+ (?:(?:
+(?P<time>\d[^ \n]+) +\w+ +\w+ +>\w+ (?:(?:
 (?:inzone:(?P<inzone>.*?))|
 (?:outzone:(?P<outzone>.*?))|
 (?:rule:(?P<rule>.*?))|

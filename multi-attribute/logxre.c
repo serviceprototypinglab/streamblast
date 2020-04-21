@@ -6,6 +6,8 @@
 #define MAXBUFFERSIZE 1024 * 1024 * 16
 #define OPPORTUNISTIC_JUMP 0
 
+#define DEBUG 0
+
 static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize){
 	int res = 0;
 	//uint32_t mcount = 0;
@@ -17,27 +19,40 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 
 	while(1){
 		res = pcre2_match(re, subj + offset, subjsize - offset, 0, 0, mdata, NULL);
-		//printf("Res: %i\n", res);
-
+#if DEBUG
+		printf("-------\n");
+		printf("Res: %i\n", res);
+#endif
 		if(res > 0){
 			//mcount = pcre2_get_ovector_count(mdata);
 			mvector = pcre2_get_ovector_pointer(mdata);
-			//printf("Count total: %i\n", res);
-			for(i = 1; i < res; i++){
-				//printf("%i: %lu..%lu\n", i, mvector[2 * i], mvector[2 * i + 1]);
-				len = mvector[2 * i + 1] - mvector[2 * i];
-				if(len >= sizeof(buffer)){
-					printf("! match too large :(\n");
-				}else{
-					strncpy(buffer, subj + offset + mvector[2 * i], len);
-					buffer[len] = '\0';
-					//printf("%s\n", buffer);
-					//puts(buffer);
-					fputs(buffer, stdout);
-					if(i < res - 1){
-						fputs("\t", stdout);
+#if DEBUG == 2
+			printf("Count total: %i\n", res);
+#endif
+			// TODO specific to fwsyslog.re; might need checks for others or use + instead of * in regexp
+			// TODO should be 14 but product_family is absent due to missing ;/\n switch at end of regexp
+			if(res == 13){
+
+				for(i = 1; i < res; i++){
+#if DEBUG == 2
+					printf("%i: %lu..%lu\n", i, mvector[2 * i], mvector[2 * i + 1]);
+#endif
+					len = mvector[2 * i + 1] - mvector[2 * i];
+					if(len >= sizeof(buffer)){
+						printf("! match too large :(\n");
 					}else{
-						fputs("\n", stdout);
+						strncpy(buffer, subj + offset + mvector[2 * i], len);
+						buffer[len] = '\0';
+#if DEBUG == 2
+						//printf("%s\n", buffer);
+						//puts(buffer);
+#endif
+						fputs(buffer, stdout);
+						if(i < res - 1){
+							fputs("\t", stdout);
+						}else{
+							fputs("\n", stdout);
+						}
 					}
 				}
 			}
