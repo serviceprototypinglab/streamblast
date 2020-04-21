@@ -1,7 +1,7 @@
-all: cextract test
+all: streamblast-s test
 
-cextract: cextract.c
-	gcc -O2 -o cextract cextract.c
+streamblast-s: cextract.c
+	gcc -O2 -o $@ $<
 
 test:
-	./cextract ../data/fwsyslog-twolines src: plain
+	./streamblast-s ../data/fwsyslog-twolines src: plain
