@@ -107,19 +107,25 @@ int main(int argc, char *argv[]){
 
 	fclose(f);
 
-	f = fopen(logfile, "r");
-	if(!f){
-		printf("ERROR: Cannot open logfile '%s'.\n", logfile);
-		return -1;
+	if(!strcmp(logfile, "-")) {
+		f = stdin;
+	} else {
+		f = fopen(logfile, "r");
+		if(!f){
+			printf("ERROR: Cannot open logfile '%s'.\n", logfile);
+			return -1;
+		}
 	}
 
 	buffersize = MAXBUFFERSIZE;
-	fseek(f, 0, SEEK_END);
-	filesize = ftell(f);
-	rewind(f);
-	if(filesize < buffersize)
-		buffersize = filesize;
-	//printf("bufsize: %li\n", buffersize);
+	res = fseek(f, 0, SEEK_END);
+	if(res == 0){
+		filesize = ftell(f);
+		rewind(f);
+		if(filesize < buffersize)
+			buffersize = filesize;
+		//printf("bufsize: %li\n", buffersize);
+	}
 
 	rbuffer = malloc(buffersize);
 
@@ -135,10 +141,11 @@ int main(int argc, char *argv[]){
 	mdata = pcre2_match_data_create_from_pattern(re, NULL);
 
 	while(1){
-		oldpos = ftell(f);
+		if(filesize != 0)
+			oldpos = ftell(f);
 		res = fread(rbuffer, buffersize, 1, f);
 		//printf("res=%i ferror=%i feof=%i diff=%li\n", res, ferror(f), feof(f), ftell(f) - oldpos);
-		if(ftell(f) - oldpos < buffersize)
+		if((filesize != 0) && (ftell(f) - oldpos < buffersize))
 			buffersize = ftell(f) - oldpos;
 
 		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize);
@@ -146,10 +153,12 @@ int main(int argc, char *argv[]){
 		if(res == 0){
 			break;
 		}
-		if(ftell(f) == filesize){
-			break;
+		if(filesize != 0){
+			if(ftell(f) == filesize)
+				break;
+			// TODO trackback does not work in streaming mode yet
+			fseek(f, -60, SEEK_CUR);
 		}
-		fseek(f, -60, SEEK_CUR);
 	}
 
 	pcre2_match_data_free(mdata);

@@ -51,11 +51,16 @@ static void run(const char *filename, const char *pattern, char output){
 		printf("\\copy cextract FROM STDIN;\n");
 	}
 
-	f = fopen(filename, "r");
-	if(!f) {
-		printf("ERROR: Cannot open file '%s'.\n", filename);
-		return;
+	if(!strcmp(filename, "-")) {
+		f = stdin;
+	} else {
+		f = fopen(filename, "r");
+		if(!f) {
+			printf("ERROR: Cannot open logfile '%s'.\n", filename);
+			return;
+		}
 	}
+
 	offset = strlen(pattern);
 
 	do {
