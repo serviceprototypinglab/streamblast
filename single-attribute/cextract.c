@@ -159,7 +159,7 @@ int main(int argc, char *argv[]){
 		}
 		run(argv[1], argv[2], output);
 	} else {
-		printf("Run: ./cextract <file.log> <key:> <outputformat:plain(default),json,sql,psql,psqlcopy>\n");
+		printf("Run: streamblast-s <file.log> <key:> <outputformat:plain(default),json,sql,psql,psqlcopy>\n");
 	}
 
 	return 0;

@@ -2,6 +2,8 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include <string.h>
+#include <poll.h>
+#include <sys/ioctl.h>
 
 #define MAXBUFFERSIZE 1024 * 1024 * 16
 #define OPPORTUNISTIC_JUMP 0
@@ -85,7 +87,7 @@ int main(int argc, char *argv[]){
 	char regex[1024];
 
 	if(argc != 3){
-		printf("ERROR: Syntax: logxre <file.log> <refile.re>\n");
+		printf("ERROR: Syntax: streamblast-m <file.log> <refile.re>\n");
 		return -1;
 	}
 
@@ -103,12 +105,17 @@ int main(int argc, char *argv[]){
 	if(regex[strlen(regex) - 1] == '\n'){
 		regex[strlen(regex) - 1] = '\0';
 	}
-	//printf("RE: %s [%i]\n", regex, res);
 
 	fclose(f);
 
+#if DEBUG
+	printf("Configuration: %s %s\n", logfile, refile);
+	printf("RE: %s [%i]\n", regex, res);
+#endif
+
 	if(!strcmp(logfile, "-")) {
 		f = stdin;
+		setvbuf(stdin, NULL, _IONBF, 0);
 	} else {
 		f = fopen(logfile, "r");
 		if(!f){
@@ -124,7 +131,6 @@ int main(int argc, char *argv[]){
 		rewind(f);
 		if(filesize < buffersize)
 			buffersize = filesize;
-		//printf("bufsize: %li\n", buffersize);
 	}
 
 	rbuffer = malloc(buffersize);
@@ -143,8 +149,26 @@ int main(int argc, char *argv[]){
 	while(1){
 		if(filesize != 0)
 			oldpos = ftell(f);
+		else{
+#if DEBUG
+			printf("!feof=%i\n", feof(f));
+#endif
+			struct pollfd pfd;
+			pfd.fd = 0;
+			pfd.events = POLLIN;
+			res = poll(&pfd, 1, -1);
+#if DEBUG
+			printf("!res=%i\n", res);
+#endif
+			ioctl(0, FIONREAD, &buffersize);
+		}
+#if DEBUG
+		printf("bufsize: %li\n", buffersize);
+#endif
 		res = fread(rbuffer, buffersize, 1, f);
-		//printf("res=%i ferror=%i feof=%i diff=%li\n", res, ferror(f), feof(f), ftell(f) - oldpos);
+#if DEBUG
+		printf("res=%i ferror=%i feof=%i diff=%li\n", res, ferror(f), feof(f), ftell(f) - oldpos);
+#endif
 		if((filesize != 0) && (ftell(f) - oldpos < buffersize))
 			buffersize = ftell(f) - oldpos;
 
