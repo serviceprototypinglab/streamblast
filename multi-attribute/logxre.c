@@ -179,10 +179,15 @@ int main(int argc, char *argv[]){
 			struct pollfd pfd;
 			pfd.fd = 0;
 			pfd.events = POLLIN;
-			res = poll(&pfd, 1, -1);
+			while(1){
+				res = poll(&pfd, 1, -1); // -1/1000
 #if DEBUG
-			printf("!res=%i\n", res);
+				printf("poll %i -> res %i [%i]\n", pfd.revents & POLLIN, res, pfd.revents);
+				printf("!res=%i\n", res);
 #endif
+				if(pfd.revents & POLLIN)
+					break;
+			}
 			ioctl(0, FIONREAD, &buffersize);
 		}
 #if DEBUG
