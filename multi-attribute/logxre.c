@@ -8,9 +8,12 @@
 #define MAXBUFFERSIZE 1024 * 1024 * 16
 #define OPPORTUNISTIC_JUMP 0
 
+#define FORMAT_PSQL 0
+#define FORMAT_ELASTIC 1
+
 #define DEBUG 0
 
-static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize){
+static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize, char format, int *lineid){
 	int res = 0;
 	//uint32_t mcount = 0;
 	PCRE2_SIZE *mvector = NULL;
@@ -34,7 +37,6 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 			// TODO specific to fwsyslog.re; might need checks for others or use + instead of * in regexp
 			// TODO should be 14 but product_family is absent due to missing ;/\n switch at end of regexp
 			if(res == 13){
-
 				for(i = 1; i < res; i++){
 #if DEBUG == 2
 					printf("%i: %lu..%lu\n", i, mvector[2 * i], mvector[2 * i + 1]);
@@ -49,11 +51,24 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 						//printf("%s\n", buffer);
 						//puts(buffer);
 #endif
-						fputs(buffer, stdout);
-						if(i < res - 1){
-							fputs("\t", stdout);
-						}else{
-							fputs("\n", stdout);
+						if(format == FORMAT_PSQL){
+							fputs(buffer, stdout);
+							if(i < res - 1){
+								fputs("\t", stdout);
+							}else{
+								fputs("\n", stdout);
+							}
+						}else if(format == FORMAT_ELASTIC){
+							if(i == 1){
+								printf("{\"index\":{\"_id\":\"%i\"}}\n{", *lineid);
+								*lineid += 1;
+							}
+							printf("\"f%i\":\"%s\"", i, buffer);
+							if(i < res - 1){
+								fputs(",", stdout);
+							}else{
+								fputs("}\n", stdout);
+							}
 						}
 					}
 				}
@@ -85,14 +100,20 @@ int main(int argc, char *argv[]){
 	size_t filesize = 0;
 	size_t oldpos = 0;
 	char regex[1024];
+	char format = FORMAT_PSQL;
+	int lineid = 0;
 
-	if(argc != 3){
-		printf("ERROR: Syntax: streamblast-m <file.log> <refile.re>\n");
+	if((argc != 3) && (argc != 4)){
+		printf("ERROR: Syntax: streamblast-m <file.log> <refile.re> [elastic]\n");
 		return -1;
 	}
 
-	refile = argv[2];
 	logfile = argv[1];
+	refile = argv[2];
+	if(argc == 4){
+		if(!strcmp(argv[3], "elastic"))
+			format = FORMAT_ELASTIC;
+	}
 
 	f = fopen(refile, "r");
 	if(!f){
@@ -172,7 +193,7 @@ int main(int argc, char *argv[]){
 		if((filesize != 0) && (ftell(f) - oldpos < buffersize))
 			buffersize = ftell(f) - oldpos;
 
-		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize);
+		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize, format, &lineid);
 
 		if(res == 0){
 			break;
