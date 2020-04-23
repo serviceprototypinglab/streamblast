@@ -174,6 +174,8 @@ int main(int argc, char *argv[]){
 #if DEBUG
 			printf("!feof=%i\n", feof(f));
 #endif
+			fflush(stdout);
+
 			struct pollfd pfd;
 			pfd.fd = 0;
 			pfd.events = POLLIN;
