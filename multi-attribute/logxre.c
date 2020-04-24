@@ -13,7 +13,7 @@
 
 #define DEBUG 0
 
-static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize, char format, int *lineid){
+static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize, char format, int *lineid, char expect){
 	int res = 0;
 	//uint32_t mcount = 0;
 	PCRE2_SIZE *mvector = NULL;
@@ -26,7 +26,7 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 		res = pcre2_match(re, subj + offset, subjsize - offset, 0, 0, mdata, NULL);
 #if DEBUG
 		printf("-------\n");
-		printf("Res: %i\n", res);
+		printf("Res: %i / expect: %i\n", res, expect);
 #endif
 		if(res > 0){
 			//mcount = pcre2_get_ovector_count(mdata);
@@ -36,7 +36,7 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 #endif
 			// TODO specific to fwsyslog.re; might need checks for others or use + instead of * in regexp
 			// TODO should be 14 but product_family is absent due to missing ;/\n switch at end of regexp
-			if(res == 13){
+			if((expect == 0) || (res == expect)){
 				for(i = 1; i < res; i++){
 #if DEBUG == 2
 					printf("%i: %lu..%lu\n", i, mvector[2 * i], mvector[2 * i + 1]);
@@ -102,6 +102,7 @@ int main(int argc, char *argv[]){
 	char regex[1024];
 	char format = FORMAT_PSQL;
 	int lineid = 0;
+	int expect = 0;
 
 	if((argc != 3) && (argc != 4)){
 		printf("ERROR: Syntax: streamblast-m <file.log> <refile.re> [elastic]\n");
@@ -128,6 +129,11 @@ int main(int argc, char *argv[]){
 	}
 
 	fclose(f);
+
+	if(strstr(refile, "fwsyslog.re"))
+		expect = 13;
+	if(strstr(refile, "adminlog.re"))
+		expect = 6;
 
 #if DEBUG
 	printf("Configuration: %s %s\n", logfile, refile);
@@ -200,7 +206,7 @@ int main(int argc, char *argv[]){
 		if((filesize != 0) && (ftell(f) - oldpos < buffersize))
 			buffersize = ftell(f) - oldpos;
 
-		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize, format, &lineid);
+		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize, format, &lineid, expect);
 
 		if(res == 0){
 			break;

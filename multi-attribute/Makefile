@@ -1,10 +1,11 @@
-all: streamblast-m fwsyslog.re test
+all: streamblast-m regexps test
+regexps: fwsyslog.re adminlog.re
 
 streamblast-m: logxre.c
 	gcc -O2 -o $@ $< -lpcre2-8
 
-fwsyslog.re: fwsyslog.re.in
-	cat fwsyslog.re.in | tr -d '\n' > fwsyslog.re
+%.re: %.re.in
+	cat $< | tr -d '\n' > $@
 
 test:
 	./streamblast-m ../data/fwsyslog-twolines fwsyslog.re
