@@ -1,5 +1,5 @@
 all: streamblast-m regexps test
-regexps: fwsyslog.re adminlog.re
+regexps: fwsyslog.re adminlog.re sfw.re switches.re fwx.re
 
 streamblast-m: logxre.c
 	gcc -O2 -o $@ $< -lpcre2-8
