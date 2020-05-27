@@ -11,4 +11,4 @@
 (?:service:(?P<service>.*?))|
 (?:s_port:(?P<s_port>.*?))|
 (?:product_family:(?P<product_family>.*?))|
-);)+
+)(?:;|\n))+

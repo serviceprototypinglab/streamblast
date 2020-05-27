@@ -35,7 +35,6 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 			printf("Count total: %i\n", res);
 #endif
 			// TODO specific to fwsyslog.re; might need checks for others or use + instead of * in regexp
-			// TODO should be 14 but product_family is absent due to missing ;/\n switch at end of regexp
 			if((expect == 0) || (res == expect)){
 				for(i = 1; i < res; i++){
 #if DEBUG == 2
@@ -131,7 +130,7 @@ int main(int argc, char *argv[]){
 	fclose(f);
 
 	if(strstr(refile, "fwsyslog.re"))
-		expect = 13;
+		expect = 14;
 	if(strstr(refile, "adminlog.re"))
 		expect = 6;
 
