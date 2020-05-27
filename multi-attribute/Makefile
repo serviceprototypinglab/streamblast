@@ -1,4 +1,4 @@
-all: streamblast-m regexps test
+all: streamblast-m regexps test testelastic
 regexps: fwsyslog.re adminlog.re sfw.re switches.re fwx.re
 
 streamblast-m: logxre.c
@@ -9,3 +9,8 @@ streamblast-m: logxre.c
 
 test:
 	./streamblast-m ../data/fwsyslog-twolines fwsyslog.re
+	./streamblast-m ../data/adminlog-twolines adminlog.re
+
+testelastic:
+	./streamblast-m ../data/fwsyslog-twolines fwsyslog.re elastic
+	./streamblast-m ../data/adminlog-twolines adminlog.re elastic

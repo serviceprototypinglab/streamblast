@@ -13,7 +13,7 @@
 
 #define DEBUG 0
 
-static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize, char format, int *lineid, char expect){
+static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, PCRE2_SIZE subjsize, char format, int *lineid, char expect, const char *nsgmapper){
 	int res = 0;
 	//uint32_t mcount = 0;
 	PCRE2_SIZE *mvector = NULL;
@@ -21,6 +21,11 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 	int len = 0;
 	PCRE2_SIZE offset = 0;
 	int i = 0;
+	PCRE2_SPTR where = NULL;
+	const char *nsg = NULL;
+
+	if(format == FORMAT_ELASTIC)
+		pcre2_pattern_info(re, PCRE2_INFO_NAMETABLE, &where);
 
 	while(1){
 		res = pcre2_match(re, subj + offset, subjsize - offset, 0, 0, mdata, NULL);
@@ -62,7 +67,9 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 								printf("{\"index\":{\"_id\":\"%i\"}}\n{", *lineid);
 								*lineid += 1;
 							}
-							printf("\"f%i\":\"%s\"", i, buffer);
+							//printf("\"f%i\":\"%s\"", i, buffer);
+							nsg = (const char*)where + 2 + nsgmapper[0] * nsgmapper[i];
+							printf("\"%s\":\"%s\"", nsg, buffer);
 							if(i < res - 1){
 								fputs(",", stdout);
 							}else{
@@ -80,6 +87,29 @@ static int matchline(pcre2_code *re, pcre2_match_data *mdata, PCRE2_SPTR subj, P
 	}
 
 	return 0;
+}
+
+char *buildmapper(const pcre2_code *re){
+	PCRE2_SPTR where = NULL;
+	uint32_t namecount = 0;
+	uint32_t namesize = 0;
+	char *nsgmapper = NULL;
+	int res = 0;
+
+	res = pcre2_pattern_info(re, PCRE2_INFO_NAMECOUNT, &namecount);
+	res = pcre2_pattern_info(re, PCRE2_INFO_NAMEENTRYSIZE, &namesize);
+	res = pcre2_pattern_info(re, PCRE2_INFO_NAMETABLE, &where);
+	nsgmapper = (char*)malloc(sizeof(char) * (namecount + 1));
+#if DEBUG
+	printf("[%i] ??SIZE [%ux%u]\n", res, namecount, namesize);
+	for(int j = 0; j < namecount; j++)
+		printf("[%i] ??NAME (%i) %s\n", res, *(where + 1 + namesize * j), where + 2 + namesize * j);
+#endif
+	nsgmapper[0] = namesize;
+	for(int j = 0; j < namecount; j++)
+		nsgmapper[*(where + 1 + namesize * j)] = j;
+
+	return nsgmapper;
 }
 
 int main(int argc, char *argv[]){
@@ -102,6 +132,7 @@ int main(int argc, char *argv[]){
 	char format = FORMAT_PSQL;
 	int lineid = 0;
 	int expect = 0;
+	char *nsgmapper = NULL;
 
 	if((argc != 3) && (argc != 4)){
 		printf("ERROR: Syntax: streamblast-m <file.log> <refile.re> [elastic]\n");
@@ -128,11 +159,6 @@ int main(int argc, char *argv[]){
 	}
 
 	fclose(f);
-
-	if(strstr(refile, "fwsyslog.re"))
-		expect = 14;
-	if(strstr(refile, "adminlog.re"))
-		expect = 6;
 
 #if DEBUG
 	printf("Configuration: %s %s\n", logfile, refile);
@@ -162,7 +188,6 @@ int main(int argc, char *argv[]){
 	rbuffer = malloc(buffersize);
 
 	pat = regex;
-	//".*src:([^;]*).*";
 	re = pcre2_compile(pat, strlen(pat), options, &error, &erroroffset, NULL);
 	if(!re){
 		pcre2_get_error_message(error, buffer, sizeof(buffer));
@@ -171,6 +196,9 @@ int main(int argc, char *argv[]){
 	}
 
 	mdata = pcre2_match_data_create_from_pattern(re, NULL);
+	expect = pcre2_get_ovector_count(mdata);
+
+	nsgmapper = buildmapper(re);
 
 	while(1){
 		if(filesize != 0)
@@ -205,7 +233,7 @@ int main(int argc, char *argv[]){
 		if((filesize != 0) && (ftell(f) - oldpos < buffersize))
 			buffersize = ftell(f) - oldpos;
 
-		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize, format, &lineid, expect);
+		matchline(re, mdata, (PCRE2_SPTR)rbuffer, (PCRE2_SIZE)buffersize, format, &lineid, expect, nsgmapper);
 
 		if(res == 0){
 			break;
@@ -217,6 +245,9 @@ int main(int argc, char *argv[]){
 			fseek(f, -60, SEEK_CUR);
 		}
 	}
+
+	free(nsgmapper);
+	nsgmapper = NULL;
 
 	pcre2_match_data_free(mdata);
 	mdata = NULL;
